@@ -12,10 +12,14 @@ const users = [];
 function checksExistsUserAccount(request, response, next) {
   const { username } = request.headers;
 
+  if (!username) {
+    return response.status(400).json({ error: "Username required." });
+  }
+
   const user = users.find((user) => user.username === username);
 
   if (!user) {
-    return response.status(404).json({ error: "User already registered" });
+    return response.status(404).json({ error: "User not found" });
   }
 
   request.user = user;
@@ -26,12 +30,16 @@ function checksExistsUserAccount(request, response, next) {
 function checksCreateTodosUserAvailability(request, response, next) {
   const { user } = request;
 
+  if (!user) {
+    return response.status(400).json({ error: "User required" });
+  }
+
   if ((!user.pro && user.todos.length < 10) || user.pro) {
     return next();
   } else {
     return response.status(403).json({
       error:
-        "I`m sorry. Your subscription is free and you ran out of todos that can be registered. Go pro and enjoy!",
+        "Your subscription is FREE and you ran out of todos that can be registered. Go PRO and enjoy!",
     });
   }
 }
@@ -40,27 +48,31 @@ function checksTodoExists(request, response, next) {
   const { username } = request.headers;
   const { todoId } = request.params;
 
-  const user = users.find((user) => user.username === username);
+  if (!username) {
+    return response.status(404).json({ error: "Username required." });
+  }
 
+  if (!todoId) {
+    return response.status(404).json({ error: "Todo required." });
+  }
+
+  const user = users.find((user) => user.username === username);
   if (!user) {
     return response.status(404).json({ error: "User not found." });
   }
 
-  const todo = user.todos.find((todo) => (todo.id = todoId));
-
-  const UuidIsValid = validate(id);
+  const UuidIsValid = validate(todoId);
   if (!UuidIsValid) {
-    return response.status(400).json({ error: "Todo id is not a valid UUID." });
+    return response.status(404).json({ error: "Todo id is not a valid UUID." });
   }
 
+  const todo = user.todos.find((todo) => todo.id === todoId);
   if (!todo) {
-    return response
-      .status(404)
-      .json({ error: "Todo id doesn`t belong to the user." });
+    return response.status(404).json({ error: "Todo id not found." });
   }
 
-  request.todo = todo;
   request.user = user;
+  request.todo = todo;
 
   return next();
 }
@@ -69,7 +81,7 @@ function findUserById(request, response, next) {
   const { userId } = request.params;
 
   if (!userId) {
-    return response.status(400).json({ error: "User id is required." });
+    return response.status(404).json({ error: "User id is required." });
   }
 
   const user = users.find((user) => user.id === userId);
@@ -79,6 +91,7 @@ function findUserById(request, response, next) {
   }
 
   request.user = user;
+
   return next();
 }
 
